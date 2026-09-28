@@ -1,0 +1,163 @@
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+import datetime
+import os
+
+# ==========================================
+# 1. 15國語言包與貨幣設定 (精確對照)
+# ==========================================
+LANG_DICT = {
+    "繁體中文": {"title": "國際資產管理系統", "income": "總收入", "expense": "總支出", "lend": "我借出去的(應收)", "borrow": "我欠別人的(應付)", "currency": "結算貨幣", "lang": "語言選擇", "theme": "介面主題", "add": "確認新增", "save_target": "每月儲蓄目標設定", "calendar": "財務行事曆"},
+    "English": {"title": "Global Asset System", "income": "Total Income", "expense": "Total Expense", "lend": "Lent (Receivable)", "borrow": "Borrowed (Payable)", "currency": "Currency", "lang": "Language", "theme": "Theme", "add": "Add Record", "save_target": "Monthly Savings Goal", "calendar": "Financial Calendar"},
+    "日本語": {"title": "グローバル資産管理", "income": "総収入", "expense": "総支出", "lend": "貸付金", "borrow": "借入金", "currency": "決済通貨", "lang": "言語選択", "theme": "テーマ", "add": "追加", "save_target": "毎月の貯金目標", "calendar": "財務カレンダー"},
+    "한국어": {"title": "글로벌 자산 관리", "income": "총수입", "expense": "총지출", "lend": "빌려준 돈", "borrow": "빌린 돈", "currency": "결제 통화", "lang": "언어 선택", "theme": "테마", "add": "추가", "save_target": "월간 저축 목표", "calendar": "재무 캘린더"},
+    "Français": {"title": "Système Financier Global", "income": "Revenu Total", "expense": "Dépenses Totales", "lend": "Prêté", "borrow": "Emprunté", "currency": "Devise", "lang": "Langue", "theme": "Thème", "add": "Ajouter", "save_target": "Objectif d'Épargne", "calendar": "Calendrier Financier"},
+    "Deutsch": {"title": "Globales Finanzsystem", "income": "Gesamteinnahmen", "expense": "Gesamtausgaben", "lend": "Geliehen", "borrow": "Gefordert", "currency": "Währung", "lang": "Sprache", "theme": "Design", "add": "Hinzufügen", "save_target": "Monatliches Sparziel", "calendar": "Finanzkalender"},
+    "Español": {"title": "Sistema Financiero Global", "income": "Ingresos Totales", "expense": "Gastos Totales", "lend": "Prestado", "borrow": "Prestado de", "currency": "Moneda", "lang": "Idioma", "theme": "Tema", "add": "Añadir", "save_target": "Meta de Ahorro", "calendar": "Calendario Financiero"},
+    "Português": {"title": "Sistema Financeiro Global", "income": "Receita Total", "expense": "Despesas Totais", "lend": "Emprestado", "borrow": "Devido", "currency": "Moeda", "lang": "Idioma", "theme": "Tema", "add": "Adicionar", "save_target": "Meta de Poupança", "calendar": "Calendário Financeiro"},
+    "Italiano": {"title": "Sistema Finanziario Globale", "income": "Entrate Totali", "expense": "Uscite Totali", "lend": "Prestato", "borrow": "Prestato da", "currency": "Valuta", "lang": "Lingua", "theme": "Tema", "add": "Aggiungi", "save_target": "Obiettivo di Risparmio", "calendar": "Calendario Finanziario"},
+    "Русский": {"title": "Глобальная Финансовая Система", "income": "Общий доход", "expense": "Общие расходы", "lend": "Одолжено", "borrow": "Занято", "currency": "Валюта", "lang": "Язык", "theme": "Тема", "add": "Добавить", "save_target": "Цель по сбережениям", "calendar": "Финансовый календарь"},
+    "Tiếng Việt": {"title": "Hệ Thống Tài Chính Toàn Cầu", "income": "Tổng Thu Nhập", "expense": "Tổng Chi Phí", "lend": "Cho Vay", "borrow": "Vay Nợ", "currency": "Tiền Tệ", "lang": "Ngôn Ngữ", "theme": "Giao Diện", "add": "Thêm", "save_target": "Mục Tiêu Tiết Kiệm", "calendar": "Lịch Tài Chính"},
+    "ไทย": {"title": "ระบบจัดการสินทรัพย์ทั่วโลก", "income": "รายได้ทั้งหมด", "expense": "รายจ่ายทั้งหมด", "lend": "ให้ยืม", "borrow": "กู้ยืม", "currency": "สกุลเงิน", "lang": "ภาษา", "theme": "ธีม", "add": "บันทึก", "save_target": "เป้าหมายการออม", "calendar": "ปฏิทินการเงิน"},
+    "Bahasa Indonesia": {"title": "Sistem Keuangan Global", "income": "Total Pendapatan", "expense": "Total Pengeluaran", "lend": "Dipinjamkan", "borrow": "Hutang", "currency": "Mata Uang", "lang": "Bahasa", "theme": "Tema", "add": "Tambah", "save_target": "Target Tabungan", "calendar": "Kalender Keuangan"},
+    "Türkçe": {"title": "Küresel Finans Sistemi", "income": "Toplam Gelir", "expense": "Toplam Gider", "lend": "Verilen Borç", "borrow": "Alınan Borç", "currency": "Para Birimi", "lang": "Dil", "theme": "Tema", "add": "Ekle", "save_target": "Tasarruf Hedefi", "calendar": "Finansal Takvim"},
+    "العربية": {"title": "نظام الأصول العالمي", "income": "إجمالي الدخل", "expense": "إجمالي المصروفات", "lend": "المقرض", "borrow": "المقترض", "currency": "العملة", "lang": "اللغة", "theme": "المظهر", "add": "إضافة", "save_target": "هدف الادخار", "calendar": "التقويم المالي"}
+}
+
+# 15國貨幣基準匯率對照表 (以台幣TWD為基準，呈現時即時換算)
+CURRENCY_DICT = {
+    "TWD (NT$)": {"rate": 1.0, "sign": "NT$"}, "USD ($)": {"rate": 0.031, "sign": "$"},
+    "EUR (€)": {"rate": 0.029, "sign": "€"}, "JPY (¥)": {"rate": 4.65, "sign": "¥"},
+    "GBP (£)": {"rate": 0.024, "sign": "£"}, "AUD (A$)": {"rate": 0.047, "sign": "A$"},
+    "CAD (C$)": {"rate": 0.042, "sign": "C$"}, "CNY (¥)": {"rate": 0.22, "sign": "¥"},
+    "HKD (HK$)": {"rate": 0.24, "sign": "HK$"}, "KRW (₩)": {"rate": 41.5, "sign": "₩"},
+    "SGD (S$)": {"rate": 0.041, "sign": "S$"}, "CHF (Fr)": {"rate": 0.027, "sign": "Fr"},
+    "INR (₹)": {"rate": 2.58, "sign": "₹"}, "RUB (₽)": {"rate": 2.85, "sign": "₽"},
+    "NZD (NZ$)": {"rate": 0.051, "sign": "NZ$"}
+}
+
+# 4種網頁高級主題顏色
+THEME_DICT = {
+    "經典科技藍 (Classic Blue)": px.colors.sequential.Blues,
+    "黑金低奢 (Luxury Dark)": ["#222222", "#D4AF37", "#AA7C11", "#FFDF73"],
+    "極簡森林綠 (Forest Green)": px.colors.sequential.Greens,
+    "活力櫻花粉 (Sakura Pink)": px.colors.sequential.RdPu
+}
+
+# ==========================================
+# 2. 初始化頁面設定與側邊欄 (Sidebar)
+# ==========================================
+st.set_page_config(page_title="Global Financial System", page_icon="🌐", layout="wide")
+
+with st.sidebar:
+    st.header("⚙️ 系統設定 / Settings")
+    # 功能1：15國語言選擇
+    selected_lang = st.selectbox("🌐 Language / 語言", list(LANG_DICT.keys()))
+    L = LANG_DICT[selected_lang]
+    
+    # 功能2：15國貨幣結算選擇
+    selected_curr = st.selectbox(f"💱 {L['currency']}", list(CURRENCY_DICT.keys()))
+    curr_rate = CURRENCY_DICT[selected_curr]["rate"]
+    curr_sign = CURRENCY_DICT[selected_curr]["sign"]
+    
+    # 功能3：介面主題切換
+    selected_theme = st.selectbox(f"🎨 {L['theme']}", list(THEME_DICT.keys()))
+    theme_color = THEME_DICT[selected_theme]
+
+st.title(f"🌐 {L['title']}")
+
+# ==========================================
+# 3. 資料庫自動讀寫（本地持久存檔）
+# ==========================================
+DATA_FILE = "global_financial_data.csv"
+if os.path.exists(DATA_FILE):
+    df = pd.read_csv(DATA_FILE)
+    df['日期'] = pd.to_datetime(df['日期']).dt.date
+else:
+    df = pd.DataFrame(columns=["日期", "項目", "金額(TWD)", "分類"])
+
+# ==========================================
+# 4. 財務行事曆與資料輸入
+# ==========================================
+col_input, col_calc = st.columns(2)
+
+with col_input:
+    st.subheader(f"✍️ 新增帳目")
+    # 功能4：財務行事曆 (選擇特定日期記帳)
+    choose_date = st.date_input(L['calendar'], datetime.date.today())
+    item_name = st.text_input("項目名稱/關係人", placeholder="例如：月結薪資、小明借錢")
+    
+    # 功能5：借貸記帳與基礎分類
+    item_type = st.selectbox("分類", ["收入", "支出", "借出(他人欠我)", "借入(我欠他人)"])
+    input_amount = st.number_input(f"金額 ({curr_sign})", min_value=0.0, value=100.0)
+    
+    if st.button(L['add']):
+        twd_amount = input_amount / curr_rate  # 將各國貨幣統一轉換為台幣存檔，避免匯率混亂
+        new_row = pd.DataFrame([{"日期": choose_date, "項目": item_name, "金額(TWD)": twd_amount, "分類": item_type}])
+        df = pd.concat([df, new_row], ignore_index=True)
+        df.to_csv(DATA_FILE, index=False)
+        st.success("成功記錄資料！ / Data Added Successfully!")
+        st.rerun()
+
+# ==========================================
+# 5. 功能6：每月儲蓄目標與預算牆計算
+# ==========================================
+with col_calc:
+    st.subheader(f"🎯 {L['save_target']}")
+    target_income = st.number_input("預估每月總收入 (TWD)", min_value=0, value=50000)
+    target_save = st.number_input("每月強迫儲蓄目標 (TWD)", min_value=0, value=15000)
+    
+    current_month = datetime.date.today().month
+    df['日期'] = pd.to_datetime(df['日期'])
+    # 計算這個月已經發生的實際支出
+    monthly_expense_twd = abs(df[(df['分類'] == "支出") & (df['日期'].dt.month == current_month)]["金額(TWD)"].sum())
+    
+    # 核心邏輯：總收入 - 強迫儲蓄 = 剩餘能生活的錢
+    allowed_spend = target_income - target_save
+    remained_budget_twd = allowed_spend - monthly_expense_twd
+    remained_budget_curr = remained_budget_twd * curr_rate # 即時切換貨幣呈現
+    
+    if remained_budget_curr >= 0:
+        st.metric("本月剩餘可用生活費額度", f"{curr_sign} {remained_budget_curr:,.2f}", delta="👍 預算安全，請繼續保持")
+    else:
+        st.metric("本月剩餘可用生活費額度", f"{curr_sign} {remained_budget_curr:,.2f}", delta="⚠️ 您已超支到您的儲蓄計畫！", delta_color="inverse")
+
+st.markdown("---")
+
+# ==========================================
+# 6. 全球資產看板核心呈現
+# ==========================================
+df_curr = df.copy()
+df_curr["金額"] = df_curr["金額(TWD)"] * curr_rate # 將所有台幣數據乘以當前匯率
+
+inc_total = df_curr[df_curr["分類"] == "收入"]["金額"].sum()
+exp_total = df_curr[df_curr["分類"] == "支出"]["金額"].sum()
+lend_total = df_curr[df_curr["分類"] == "借出(他人欠我)"]["金額"].sum()
+borrow_total = df_curr[df_curr["分類"] == "借入(我欠他人)"]["金額"].sum()
+
+m1, m2, m3, m4 = st.columns(4)
+m1.metric(L['income'], f"{curr_sign} {inc_total:,.2f}")
+m2.metric(L['expense'], f"{curr_sign} {exp_total:,.2f}")
+m3.metric(L['lend'], f"{curr_sign} {lend_total:,.2f}", delta="應收回資產")
+m4.metric(L['borrow'], f"{curr_sign} {borrow_total:,.2f}", delta="應還款負債", delta_color="inverse")
+
+# ==========================================
+# 7. 圖表與數據報表一覽
+# ==========================================
+st.markdown("---")
+col_chart, col_table = st.columns(2)
+
+with col_chart:
+    st.subheader("📊 資產與借貸結構圓餅圖")
+    if not df_curr.empty:
+        # 動態將主題色彩注入 Plotly
+        fig = px.pie(df_curr, values="金額", names="分類", color_discrete_sequence=theme_color, hole=0.4)
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("目前尚無資料，請在上方輸入第一筆資料。")
+
+with col_table:
+    st.subheader("📂 歷史記帳明細（含行事曆對照）")
+    if not df_curr.empty:
+        df_display = df_curr[["日期", "項目", "分類", "金額"]].copy()
