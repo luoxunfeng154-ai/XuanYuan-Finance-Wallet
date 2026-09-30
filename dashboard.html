@@ -48,10 +48,17 @@
       <p>結餘：HK$<span id="balance">0</span></p>
     </section>
 
-    <section class="card">
-      <h2>最近交易</h2>
-      <div id="transactions-list"></div>
-    </section>
+     <section class="card">
+  <div class="card-header">
+    <h2>最近交易</h2>
+    <!-- 新增：視圖切換器 -->
+    <div class="view-switcher">
+      <button class="view-btn active" onclick="switchView('personal')">個人</button>
+      <button class="view-btn" onclick="switchView('group')">共享</button>
+    </div>
+  </div>
+  <div id="transactions-list" class="tx-list"></div>
+</section>
   </main>
 
   <script src="dashboard.js"></script>
