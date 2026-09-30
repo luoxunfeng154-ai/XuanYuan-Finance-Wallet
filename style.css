@@ -22,3 +22,42 @@ button[type="submit"], .btn-primary { background: #1f77b4; color: white; border:
 .group-item { padding: 10px; background: #f8f9fa; border-radius: 8px; margin-bottom: 8px; }
 .tx-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px; }
 .tx-type.income { color: green; } .tx-type.expense { color: red; }
+/* 卡片標題與切換器佈局 */
+.card-header { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  margin-bottom: 20px; 
+}
+
+.view-switcher { 
+  display: flex; 
+  background: #f1f5f9; 
+  border-radius: 8px; 
+  padding: 4px; 
+}
+
+.view-btn { 
+  padding: 6px 16px; 
+  border: none; 
+  background: transparent; 
+  border-radius: 6px; 
+  cursor: pointer; 
+  font-size: 14px; 
+  font-weight: 500; 
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.view-btn.active { 
+  background: white; 
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+  color: #1e293b;
+}
+
+/* 交易記錄的細節排版 */
+.tx-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8fafc; border-radius: 8px; font-size: 14px; }
+.tx-amount.income { color: #16a34a; font-weight: 600; }
+.tx-amount.expense { color: #dc2626; font-weight: 600; }
+.tx-note { margin: 0 8px; color: #64748b; }
+.tx-date { color: #94a3b8; font-size: 12px; }
