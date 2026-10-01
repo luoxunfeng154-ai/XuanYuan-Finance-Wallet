@@ -1,3 +1,28 @@
+:root {
+  /* 默認（女性化）主題 */
+  --bg-color: #fdf2f8;
+  --sidebar-bg: #fce7f3;
+  --card-bg: #ffffff;
+  --text-color: #4a4a4a;
+  --text-secondary: #9ca3af;
+  --primary-color: #ec4899;
+  --primary-hover: #db2777;
+  --border-color: #fbcfe8;
+  --shadow: 0 4px 12px rgba(236, 72, 153, 0.1);
+}
+
+[data-theme="masculine"] {
+  /* 男性化主題 */
+  --bg-color: #1a1a2e;
+  --sidebar-bg: #16213e;
+  --card-bg: #1f2937;
+  --text-color: #e5e7eb;
+  --text-secondary: #9ca3af;
+  --primary-color: #3b82f6;
+  --primary-hover: #2563eb;
+  --border-color: #374151;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', sans-serif; background: #f0f2f6; padding: 20px; }
 
