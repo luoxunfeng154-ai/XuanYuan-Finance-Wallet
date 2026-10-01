@@ -281,4 +281,21 @@ function renderCharts(transactions) {
   }
 }
 
-init();
+// ============ 主題切換 ============
+function switchTheme(themeName) {
+  if (themeName === 'masculine') {
+    document.documentElement.setAttribute('data-theme', 'masculine');
+    localStorage.setItem('userTheme', 'masculine');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('userTheme', 'feminine');
+  }
+}
+
+// 頁面加載時，檢查並應用之前保存的主題
+document.addEventListener('DOMContentLoaded', () => {
+  const savedTheme = localStorage.getItem('userTheme');
+  if (savedTheme === 'masculine') {
+    document.documentElement.setAttribute('data-theme', 'masculine');
+  }
+});init();
