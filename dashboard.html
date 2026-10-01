@@ -3,63 +3,153 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>我的記帳本</title>
+  <title>軒轅金融 - 錢包</title>
   <link rel="stylesheet" href="style.css">
+  
+  <!-- 引入圖表庫 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- 引入 Supabase 官方 SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- 引入多貨幣配置文件 (必須在 supabase.js 之前) -->
+  <script src="currencies.js"></script>
+  <!-- 引入 Supabase 初始化文件 -->
   <script src="supabase.js"></script>
 </head>
 <body>
-  <header class="app-header">
-    <h1>我的記帳本</h1>
-    <div>
-      <span id="user-name"></span>
-      <button onclick="handleLogout()" class="btn-small">登出</button>
-    </div>
-  </header>
-
-  <main class="dashboard">
-    <section class="card">
-      <h2>我的群組</h2>
-      <div id="groups-list"></div>
-      <button onclick="showCreateGroup()" class="btn-primary">建立新群組</button>
-      <button onclick="showJoinGroup()" class="btn-secondary">用邀請碼加入</button>
-    </section>
-
-    <section class="card">
-      <h2>記一筆帳</h2>
-      <div class="form-row">
-        <select id="tx-type">
-          <option value="expense">支出</option>
-          <option value="income">收入</option>
-        </select>
-        <input type="number" id="tx-amount" placeholder="金額" step="0.01">
-        <input type="text" id="tx-note" placeholder="備註">
-        <select id="tx-group">
-          <option value="">個人</option>
+  <div class="app-layout">
+    
+    <!-- 左側導航欄 -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <h2>軒轅金融</h2>
+        <p>錢包管理</p>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active">📊 儀表板</a>
+        <a href="#" class="nav-item">📝 交易記錄</a>
+        <a href="#" class="nav-item">👥 我的群組</a>
+        <a href="#" class="nav-item">⚙️ 設定</a>
+      </nav>
+      
+      <!-- 貨幣選擇器 -->
+      <div class="currency-selector">
+        <label for="currency-select" style="font-size:12px; color:#94a3b8; margin-bottom:4px; display:block;">選擇貨幣</label>
+        <select id="currency-select" onchange="switchCurrency(this.value)">
+          <option value="TWD">新台幣 (TWD)</option>
+          <option value="MYR">馬來西亞令吉 (MYR)</option>
+          <option value="USD">美元 (USD)</option>
+          <option value="SGD">新加坡元 (SGD)</option>
+          <option value="JPY">日圓 (JPY)</option>
+          <option value="EUR">歐元 (EUR)</option>
+          <option value="GBP">英鎊 (GBP)</option>
+          <option value="AUD">澳元 (AUD)</option>
+          <option value="CAD">加元 (CAD)</option>
+          <option value="CNY">人民幣 (CNY)</option>
+          <option value="HKD">港幣 (HKD)</option>
+          <option value="KRW">韓元 (KRW)</option>
+          <option value="THB">泰銖 (THB)</option>
         </select>
       </div>
-      <button onclick="addTransaction()" class="btn-primary">記錄</button>
-    </section>
 
-    <section class="card">
-      <h2>收支摘要</h2>
-      <p>總收入：HK$<span id="total-income">0</span></p>
-      <p>總支出：HK$<span id="total-expense">0</span></p>
-      <p>結餘：HK$<span id="balance">0</span></p>
-    </section>
+      <!-- 主題切換器 -->
+      <div class="theme-switcher" style="display:flex; gap:8px; margin-bottom:16px;">
+        <button onclick="switchTheme('feminine')" title="女性化主題" style="flex:1; padding:8px; border:none; border-radius:6px; cursor:pointer; background:#fce7f3; color:#db2777;">🌸 女性</button>
+        <button onclick="switchTheme('masculine')" title="男性化主題" style="flex:1; padding:8px; border:none; border-radius:6px; cursor:pointer; background:#1e293b; color:#e5e7eb;">🌑 男性</button>
+      </div>
 
-     <section class="card">
-  <div class="card-header">
-    <h2>最近交易</h2>
-    <!-- 新增：視圖切換器 -->
-    <div class="view-switcher">
-      <button class="view-btn active" onclick="switchView('personal')">個人</button>
-      <button class="view-btn" onclick="switchView('group')">共享</button>
-    </div>
+      <div class="sidebar-footer">
+        <span id="user-name">載入中...</span>
+        <button onclick="handleLogout()" class="btn-small">登出</button>
+      </div>
+    </aside>
+
+    <!-- 主內容區 -->
+    <main class="main-content">
+      <header class="topbar">
+        <h1>儀表板</h1>
+        <div class="topbar-actions">
+          <span id="current-date"></span>
+        </div>
+      </header>
+
+      <!-- 摘要卡片 -->
+      <section class="stats-grid">
+        <div class="stat-card income">
+          <div class="stat-icon">💰</div>
+          <div class="stat-info">
+            <h3>總收入</h3>
+            <p><span id="total-income">0</span></p>
+          </div>
+        </div>
+        <div class="stat-card expense">
+          <div class="stat-icon">💸</div>
+          <div class="stat-info">
+            <h3>總支出</h3>
+            <p><span id="total-expense">0</span></p>
+          </div>
+        </div>
+        <div class="stat-card balance">
+          <div class="stat-icon">⚖️</div>
+          <div class="stat-info">
+            <h3>結餘</h3>
+            <p><span id="balance">0</span></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 圖表區域 -->
+      <section class="charts-grid">
+        <div class="card">
+          <h2>每日收支趨勢</h2>
+          <canvas id="lineChart"></canvas>
+        </div>
+        <div class="card">
+          <h2>消費分類佔比</h2>
+          <canvas id="pieChart"></canvas>
+        </div>
+      </section>
+
+      <!-- 群組與記帳 -->
+      <section class="actions-grid">
+        <div class="card">
+          <h2>👥 我的群組</h2>
+          <div id="groups-list"></div>
+          <div class="btn-group" style="margin-top:12px;">
+            <button onclick="showCreateGroup()" class="btn-primary">建立群組</button>
+            <button onclick="showJoinGroup()" class="btn-secondary">加入群組</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>📝 記一筆帳</h2>
+          <div class="form-row">
+            <select id="tx-type">
+              <option value="expense">支出</option>
+              <option value="income">收入</option>
+            </select>
+            <input type="number" id="tx-amount" placeholder="金額" step="0.01">
+            <input type="text" id="tx-note" placeholder="備註">
+            <select id="tx-group"><option value="">個人</option></select>
+          </div>
+          <button onclick="addTransaction()" class="btn-primary" style="margin-top:12px;">記錄</button>
+        </div>
+      </section>
+
+      <!-- 最近交易 -->
+      <section class="card">
+        <div class="card-header">
+          <h2>最近交易</h2>
+          <!-- 視圖切換器 -->
+          <div class="view-switcher">
+            <button class="view-btn active" onclick="switchView('personal')">個人</button>
+            <button class="view-btn" onclick="switchView('group')">共享</button>
+          </div>
+        </div>
+        <div id="transactions-list" class="tx-list"></div>
+      </section>
+
+    </main>
   </div>
-  <div id="transactions-list" class="tx-list"></div>
-</section>
-  </main>
 
   <script src="dashboard.js"></script>
 </body>
